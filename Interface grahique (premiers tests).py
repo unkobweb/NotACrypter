@@ -14,11 +14,12 @@ window.config(background='#555555')
 # premier texte
 label_title = Label(window, text="Fonction de hashage", font=(
     "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=75)
-# label_title.pack()
 
 label_title2 = Label(window, text="Votre document", font=(
     "Courrier", 14), bg='#555555', fg='white', height='10').place(x=110, y=275)
-# label_title.pack()
+
+label_title3 = Label(window, text="Votre message", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=275)
 
 
 def mfileopen():
@@ -30,7 +31,9 @@ def mfileopen():
 button = Button(text="Sélectionner un document", width=30,
                 command=mfileopen).place(x=300, y=377)
 
-hashing_button = Button(text="Hasher", width=50).place(x=110,y=525)
+hashing_button = Button(text="Hasher", width=50).place(x=125rf,y=525)
+
+message = Entry(window, width=50).place(x=300,y=280)
 
 vals = ['sha1', 'sha256', 'sha512', 'md5', 'blake2b']
 etiqs = ['SHA-1', 'SHA-256', 'SHA-512', 'MD5', 'Blake2B']
