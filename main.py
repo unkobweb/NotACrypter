@@ -2,6 +2,7 @@ import hashlib
 import sys
 import sqlite3
 from sqlite3 import Error
+from cryptography.fernet import Fernet
 
 database = r"./pythonsqlite.db"
 
@@ -80,5 +81,11 @@ def hashMsg(message, algo):
     m.update(message.encode())
     return m.hexdigest()
 
+# print(hashMsg(sys.argv[1], sys.argv[2]))
 
-print(hashMsg(sys.argv[1], sys.argv[2]))
+
+key = Fernet.generate_key()
+print(key)
+f = Fernet(key)
+token = f.encrypt(b"Oui bonjour")
+print(f.decrypt(token))
