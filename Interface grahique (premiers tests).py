@@ -58,7 +58,7 @@ if conn is not None:
 else:
     print("Error! cannot create the database connection.")
 
-
+# Fonction de hashage avec option d'ajout de sel
 def hashMsg():
     sel = selectedSalt.get()
 
@@ -72,7 +72,13 @@ def hashMsg():
 # créer une première fenêtre
 window = tix.Tk()
 
+# personnaliser cette fenêtre
+window.title("NotACrypter")
+window.geometry("1370x720")
+window.minsize(800, 450)
+window.config(background='#555555')
 
+# Fonction ouvrant la fenêtre permettant d'ajouter un sel en BDD
 def createSalt():
 
     def create_salt():
@@ -190,7 +196,7 @@ def getAllSalt():
 
     return rows
 
-
+# Fonction ouvrant la fenêtre listant tous les sels
 def openSalt():
 
     saltPanel = Tk()
@@ -256,7 +262,7 @@ def openSalt():
 
     saltPanel.mainloop()
 
-
+# Fonction ouvrant la fenêtre permettant d'ajouter une clé AES en BDD
 def createAES():
 
     def create_AES():
@@ -297,7 +303,7 @@ def createAES():
     button_addAES = Button(
         newAES, text='Ajouter la clé', width=53).place(x=3, y=70)
 
-
+# Fonction ouvrant la fenêtre listant toutes les clés AES
 def openAES():
 
     aesPanel = Tk()
@@ -324,13 +330,7 @@ def openAES():
     aesPanel.mainloop()
 
 
-# personnaliser cette fenêtre
-window.title("NotACrypter")
-window.geometry("1370x720")
-window.minsize(800, 450)
-window.config(background='#555555')
-
-# premier texte
+# Titres
 label_title = Label(window, text="Fonction de hashage", font=(
     "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=40)
 
@@ -348,6 +348,7 @@ label_title5 = Label(window, text="Clés AES", font=(
 
 selectedSalt = StringVar()
 
+# Liste des sels disponibles
 availableSalt = tix.ComboBox(
     window, dropdown=1, variable=selectedSalt)
 availableSalt.insert(0, "Pas de sel")
@@ -356,6 +357,7 @@ for row in getAllSalt():
 availableSalt.pack()
 availableSalt.place(x=220, y=250)
 
+# Listes des clés AES disponibles
 availableAES = tix.ComboBox(
     window, dropdown=1, variable=selectedSalt)
 availableAES.insert(0, "Pas de clé AES")
@@ -366,12 +368,13 @@ availableAES.place(x=220, y=200)
 
 hashAnswer = StringVar()
 
+# Affichage du résultats du hash
 hashResult = Label(window, textvariable=hashAnswer, font=(
     "Courrier", 14), bg='#555555', fg='white', height='1')
 hashResult.pack()
 hashResult.place(x=125, y=560)
 
-
+# Fonction d'ouverture de fichier
 def mfileopen():
     file1 = filedialog.askopenfile()
     label_file = Label(window, text=file1, font=(
@@ -380,6 +383,7 @@ def mfileopen():
 
 varGr = StringVar()
 
+# Tous les boutons
 button = Button(window, text="Sélectionner un document", width=30,
                 command=mfileopen).place(x=300, y=377)
 
@@ -395,6 +399,7 @@ EncryptButton = Button(window, text="Chiffrer", width=20,
 DecipherButton = Button(window, text="Déchiffrer", width=20,
                         command=openAES).place(x=325, y=630)
 
+# Champsà remplir pour hasher un message
 textAHasher = Entry(window, width=50)
 textAHasher.pack()
 textAHasher.place(x=300, y=305)
@@ -402,6 +407,7 @@ textAHasher.place(x=300, y=305)
 hashing_button = Button(text="Hasher", width=50,
                         command=hashMsg).place(x=125, y=525)
 
+# Radio buttons permettant de choisir notre algorithme de hashage
 vals = ['sha1', 'sha256', 'sha512', 'md5', 'blake2b']
 etiqs = ['SHA-1', 'SHA-256', 'SHA-512', 'MD5', 'Blake2B']
 varGr.set(vals[0])
@@ -411,5 +417,5 @@ for i in range(5):
     b.pack(side='left', expand=1)
     b.place(x=(100*i)+300, y=140)
 
-# afficher
+# Afficher la fenêtre
 window.mainloop()
