@@ -58,7 +58,7 @@ if conn is not None:
 else:
     print("Error! cannot create the database connection.")
 
-# Fonction de hashage avec option d'ajout de sel
+
 def hashMsg():
     sel = selectedSalt.get()
 
@@ -72,13 +72,7 @@ def hashMsg():
 # créer une première fenêtre
 window = tix.Tk()
 
-# personnaliser cette fenêtre
-window.title("NotACrypter")
-window.geometry("1370x720")
-window.minsize(800, 450)
-window.config(background='#555555')
 
-# Fonction ouvrant la fenêtre permettant d'ajouter un sel en BDD
 def createSalt():
 
     def create_salt():
@@ -95,6 +89,13 @@ def createSalt():
         cur = conn.cursor()
         cur.execute(sql, salt)
         conn.commit()
+
+        countSalt = 0
+
+        availableSalt.slistbox.listbox.delete(0, tix.END)
+        for row in getAllSalt():
+            availableSalt.insert(countSalt, row[1])
+            ++countSalt
 
         newSalt.destroy()
 
@@ -140,12 +141,7 @@ def modifySalt():
 
             salt = [entry_name.get(), entry_saltvalue.get(),
                     actualSaltId.get()]
-            """
-            Create a new project into the projects table
-            :param conn:
-            :param project:
-            :return: project id
-            """
+
             sql = ''' UPDATE salt SET name = ?, salt = ? WHERE id = ?'''
             cur = conn.cursor()
             cur.execute(sql, salt)
@@ -196,7 +192,7 @@ def getAllSalt():
 
     return rows
 
-# Fonction ouvrant la fenêtre listant tous les sels
+
 def openSalt():
 
     saltPanel = Tk()
@@ -237,11 +233,16 @@ def openSalt():
 
     def refreshListOfSalt():
         allSalt.delete(0, END)
+        availableSalt.slistbox.listbox.delete(0, tix.END)
         for row in getAllSalt():
             allSalt.insert(countSalt, row[1])
+            availableSalt.insert(countSalt, row[1])
             ++countSalt
 
-    refreshListOfSalt()
+    allSalt.delete(0, END)
+    for row in getAllSalt():
+        allSalt.insert(countSalt, row[1])
+        ++countSalt
 
     allSalt.pack()
     allSalt.place(x=0, y=0)
@@ -262,7 +263,7 @@ def openSalt():
 
     saltPanel.mainloop()
 
-# Fonction ouvrant la fenêtre permettant d'ajouter une clé AES en BDD
+
 def createAES():
 
     def create_AES():
@@ -276,6 +277,13 @@ def createAES():
         conn.commit()
 
         newAES.destroy()
+
+        countAES = 0
+
+        availableAES.slistbox.listbox.delete(0, tix.END)
+        for row in getAllAES():
+            availableAES.insert(countAES, row[1])
+            ++countAES
 
         return cur.lastrowid
 
@@ -301,9 +309,73 @@ def createAES():
     entry_AESvalue.place(x=78, y=34)
 
     button_addAES = Button(
-        newAES, text='Ajouter la clé', width=53).place(x=3, y=70)
+        newAES, text='Ajouter la clé', width=53, command=create_AES).place(x=3, y=70)
 
-# Fonction ouvrant la fenêtre listant toutes les clés AES
+
+actualAESId = IntVar()
+actualAESName = StringVar()
+actualAESValue = StringVar()
+
+actualAESId.set(-1)
+
+
+def modifyAES():
+
+    if (actualAESId.get() != -1):
+        def edit_aes():
+
+            aes = [entry_name.get(), entry_AESvalue.get(),
+                   actualAESId.get()]
+
+            sql = ''' UPDATE aes SET name = ?, key = ? WHERE id = ?'''
+            cur = conn.cursor()
+            cur.execute(sql, aes)
+            conn.commit()
+
+            editAES.destroy()
+
+            return cur.lastrowid
+
+        editAES = Tk()
+
+        editAES.title("Modification d'un sel")
+        editAES.geometry("385x100")
+        editAES.minsize(385, 100)
+        editAES.config(background='#555555')
+
+        label_name = Label(editAES, text="Nom", font=(
+            "Courrier", 14), bg='#555555', fg='white').place(x=3, y=0)
+
+        entry_name = Entry(editAES, width=50)
+        entry_name.insert(END, actualAESName.get())
+        entry_name.pack()
+        entry_name.place(x=78, y=5)
+
+        label_AESValue = Label(editAES, text="Valeur", font=(
+            "Courrier", 14), bg='#555555', fg='white').place(x=3, y=30)
+
+        entry_AESvalue = Entry(editAES, width=50)
+        entry_AESvalue.insert(END, actualAESValue.get())
+        entry_AESvalue.pack()
+        entry_AESvalue.place(x=78, y=34)
+
+        button_addAES = Button(
+            editAES, text='Ajouter le sel', width=53, command=edit_aes).place(x=3, y=70)
+
+
+def getAllAES():
+
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM aes")
+
+    rows = cur.fetchall()
+
+    for row in rows:
+        print(row)
+
+    return rows
+
+
 def openAES():
 
     aesPanel = Tk()
@@ -313,24 +385,72 @@ def openAES():
     aesPanel.minsize(500, 160)
     aesPanel.config(background='#555555')
 
+    def printAESValue(evt):
+        w = evt.widget
+        index = int(w.curselection()[0])
+        value = w.get(index)
+
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM aes WHERE name = ?", [value])
+
+        rows = cur.fetchall()
+
+        actualAESId.set(rows[0][0])
+        actualAESName.set(rows[0][1])
+        actualAESValue.set(rows[0][2])
+
+        label_AESValue.config(text=("Valeur : "+rows[0][2]))
+
+    def deleteAES():
+        cur = conn.cursor()
+        cur.execute("DELETE FROM aes WHERE id = ?", [actualAESId.get()])
+        conn.commit()
+        refreshListOfAES()
+
     allAES = Listbox(aesPanel)
-    for i in range(20):
-        allAES.insert(i, str(i))
+    allAES.bind('<<ListboxSelect>>', printAESValue)
+
+    countAES = 0
+
+    def refreshListOfAES():
+        allAES.delete(0, END)
+        availableAES.slistbox.listbox.delete(0, tix.END)
+        for row in getAllAES():
+            allAES.insert(countAES, row[1])
+            availableAES.insert(countAES, row[1])
+            ++countAES
+
+    for row in getAllAES():
+        allAES.insert(countAES, row[1])
+        ++countAES
+
     allAES.pack()
     allAES.place(x=0, y=0)
 
     addAES = Button(aesPanel, text='Ajouter', width=10,
                     command=createAES).place(x=125, y=0)
 
-    editAES = Button(aesPanel, text='Editer', width=10).place(x=125, y=25)
+    editAES = Button(aesPanel, text='Editer', width=10,
+                     command=modifyAES).place(x=125, y=25)
 
     deleteAES = Button(aesPanel, text='Supprimer',
-                       width=10).place(x=125, y=50)
+                       width=10, command=deleteAES).place(x=125, y=50)
+
+    label_AESValue = Label(aesPanel, text="Selectionnez un nom pour voir la clé AES", font=(
+        "Courrier", 10), bg='#555555', fg='white', height='1')
+    label_AESValue.pack()
+    label_AESValue.place(x=125, y=80)
 
     aesPanel.mainloop()
 
 
-# Titres
+# personnaliser cette fenêtre
+window.title("NotACrypter")
+window.geometry("1370x720")
+window.minsize(800, 450)
+window.config(background='#555555')
+
+# premier texte
 label_title = Label(window, text="Fonction de hashage", font=(
     "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=40)
 
@@ -348,7 +468,6 @@ label_title5 = Label(window, text="Clés AES", font=(
 
 selectedSalt = StringVar()
 
-# Liste des sels disponibles
 availableSalt = tix.ComboBox(
     window, dropdown=1, variable=selectedSalt)
 availableSalt.insert(0, "Pas de sel")
@@ -357,24 +476,22 @@ for row in getAllSalt():
 availableSalt.pack()
 availableSalt.place(x=220, y=250)
 
-# Listes des clés AES disponibles
 availableAES = tix.ComboBox(
     window, dropdown=1, variable=selectedSalt)
 availableAES.insert(0, "Pas de clé AES")
-availableAES.insert(1, "Alexandre")
-availableAES.insert(2, "Lucas")
+for row in getAllAES():
+    availableAES.insert(row[0], row[1])
 availableAES.pack()
 availableAES.place(x=220, y=200)
 
 hashAnswer = StringVar()
 
-# Affichage du résultats du hash
 hashResult = Label(window, textvariable=hashAnswer, font=(
     "Courrier", 14), bg='#555555', fg='white', height='1')
 hashResult.pack()
 hashResult.place(x=125, y=560)
 
-# Fonction d'ouverture de fichier
+
 def mfileopen():
     file1 = filedialog.askopenfile()
     label_file = Label(window, text=file1, font=(
@@ -383,7 +500,6 @@ def mfileopen():
 
 varGr = StringVar()
 
-# Tous les boutons
 button = Button(window, text="Sélectionner un document", width=30,
                 command=mfileopen).place(x=300, y=377)
 
@@ -399,7 +515,6 @@ EncryptButton = Button(window, text="Chiffrer", width=20,
 DecipherButton = Button(window, text="Déchiffrer", width=20,
                         command=openAES).place(x=325, y=630)
 
-# Champsà remplir pour hasher un message
 textAHasher = Entry(window, width=50)
 textAHasher.pack()
 textAHasher.place(x=300, y=305)
@@ -407,7 +522,6 @@ textAHasher.place(x=300, y=305)
 hashing_button = Button(text="Hasher", width=50,
                         command=hashMsg).place(x=125, y=525)
 
-# Radio buttons permettant de choisir notre algorithme de hashage
 vals = ['sha1', 'sha256', 'sha512', 'md5', 'blake2b']
 etiqs = ['SHA-1', 'SHA-256', 'SHA-512', 'MD5', 'Blake2B']
 varGr.set(vals[0])
@@ -417,5 +531,5 @@ for i in range(5):
     b.pack(side='left', expand=1)
     b.place(x=(100*i)+300, y=140)
 
-# Afficher la fenêtre
+# afficher
 window.mainloop()
