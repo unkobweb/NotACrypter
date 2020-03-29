@@ -131,16 +131,19 @@ window.config(background='#555555')
 
 # premier texte
 label_title = Label(window, text="Fonction de hashage", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=75)
+    "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=40)
+
+label_title4 = Label(window, text="Votre sel", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=250)
 
 label_title2 = Label(window, text="Votre document", font=(
     "Courrier", 14), bg='#555555', fg='white', height='10').place(x=110, y=275)
 
 label_title3 = Label(window, text="Votre message", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=275)
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=300)
 
-label_title4 = Label(window, text="Votre sel", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=240)
+label_title5 = Label(window, text="Clés AES", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=200)
 
 selectedSalt = StringVar()
 
@@ -150,7 +153,15 @@ availableSalt.insert(0, "Pas de sel")
 availableSalt.insert(1, "Valentin")
 availableSalt.insert(2, "Lucas")
 availableSalt.pack()
-availableSalt.place(x=220, y=240)
+availableSalt.place(x=220, y=250)
+
+availableAES = tix.ComboBox(
+    window, dropdown=1, variable=selectedSalt)
+availableAES.insert(0, "Pas de clé AES")
+availableAES.insert(1, "Alexandre")
+availableAES.insert(2, "Lucas")
+availableAES.pack()
+availableAES.place(x=220, y=200)
 
 hashAnswer = StringVar()
 
@@ -177,9 +188,15 @@ openSalt = Button(window, text="Gérer les sels", width=30,
 openAES = Button(window, text="Gérer les clés AES", width=30,
                  command=openAES).place(x=1100, y=630)
 
+EncryptButton = Button(window, text="Chiffrer", width=20,
+                 command=openAES).place(x=125, y=630)
+
+DecipherButton = Button(window, text="Déchiffrer", width=20,
+                 command=openAES).place(x=325, y=630)
+
 textAHasher = Entry(window, width=50)
 textAHasher.pack()
-textAHasher.place(x=300, y=280)
+textAHasher.place(x=300, y=305)
 
 hashing_button = Button(text="Hasher", width=50,
                         command=hashMsg).place(x=125, y=525)
@@ -191,7 +208,7 @@ for i in range(5):
     b = Radiobutton(window, variable=varGr,
                     text=etiqs[i], value=vals[i], activebackground="#555555", bg='#555555', activeforeground="white", foreground="white", selectcolor="black")
     b.pack(side='left', expand=1)
-    b.place(x=(100*i)+300, y=175)
+    b.place(x=(100*i)+300, y=140)
 
 # afficher
 window.mainloop()
