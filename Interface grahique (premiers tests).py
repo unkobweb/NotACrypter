@@ -6,30 +6,43 @@ from tkinter import tix
 
 
 def hashMsg():
-    algo = varGr.get()
     sel = selectedSalt.get()
-    print(algo)
-    if algo == 'sha1':
-        m = hashlib.sha1()
-    elif algo == 'sha256':
-        m = hashlib.sha256()
-    elif algo == 'sha512':
-        m = hashlib.sha512()
-    elif algo == 'md5':
-        m = hashlib.md5()
-    elif algo == 'blake2b':
-        m = hashlib.blake2b()
-    else:
-        print('L\'algorithme n\'est pas connu par NotACrypter')
-        return 0
-    if (sel != "" or sel != "Pas de sel"):
+
+    m = hashlib.new(varGr.get())
+    if (sel != "" and sel != "Pas de sel"):
         m.update(sel.encode())
     m.update(textAHasher.get().encode())
-    hashAnswer.set("Hash : "+m.hexdigest())
+    hashAnswer.set("Hash : "+m.hexdigest().upper())
 
 
 # créer une première fenêtre
 window = tix.Tk()
+
+
+def createSalt():
+    newSalt = Tk()
+
+    newSalt.title("Ajout d'un sel")
+    newSalt.geometry("385x100")
+    newSalt.minsize(385, 100)
+    newSalt.config(background='#555555')
+
+    label_name = Label(newSalt, text="Nom", font=(
+        "Courrier", 14), bg='#555555', fg='white').place(x=3, y=0)
+
+    entry_name = Entry(newSalt, width=50)
+    entry_name.pack()
+    entry_name.place(x=78, y=5)
+
+    label_saltValue = Label(newSalt, text="Valeur", font=(
+        "Courrier", 14), bg='#555555', fg='white').place(x=3, y=30)
+
+    entry_saltvalue = Entry(newSalt, width=50)
+    entry_saltvalue.pack()
+    entry_saltvalue.place(x=78, y=34)
+
+    button_addSalt = Button(
+        newSalt, text='Ajouter le sel', width=53).place(x=3, y=70)
 
 
 def openSalt():
@@ -37,21 +50,75 @@ def openSalt():
     saltPanel = Tk()
 
     saltPanel.title("Sels")
-    saltPanel.geometry("500x150")
-    saltPanel.minsize(500, 150)
+    saltPanel.geometry("500x160")
+    saltPanel.minsize(500, 160)
     saltPanel.config(background='#555555')
 
+    allSalt = Listbox(saltPanel)
+    for i in range(20):
+        allSalt.insert(i, str(i))
+    allSalt.pack()
+    allSalt.place(x=0, y=0)
+
+    addSalt = Button(saltPanel, text='Ajouter', width=10,
+                     command=createSalt).place(x=125, y=0)
+
+    editSalt = Button(saltPanel, text='Editer', width=10).place(x=125, y=25)
+
+    deleteSalt = Button(saltPanel, text='Supprimer',
+                        width=10).place(x=125, y=50)
+
     saltPanel.mainloop()
+
+
+def createAES():
+    newAES = Tk()
+
+    newAES.title("Ajout d'une clé AES")
+    newAES.geometry("385x100")
+    newAES.minsize(385, 100)
+    newAES.config(background='#555555')
+
+    label_name = Label(newAES, text="Nom", font=(
+        "Courrier", 14), bg='#555555', fg='white').place(x=3, y=0)
+
+    entry_AESname = Entry(newAES, width=50)
+    entry_AESname.pack()
+    entry_AESname.place(x=78, y=5)
+
+    label_AESValue = Label(newAES, text="Valeur", font=(
+        "Courrier", 14), bg='#555555', fg='white').place(x=3, y=30)
+
+    entry_AESvalue = Entry(newAES, width=50)
+    entry_AESvalue.pack()
+    entry_AESvalue.place(x=78, y=34)
+
+    button_addAES = Button(
+        newAES, text='Ajouter le sel', width=53).place(x=3, y=70)
 
 
 def openAES():
 
     aesPanel = Tk()
 
-    aesPanel.title("AES")
-    aesPanel.geometry("500x150")
-    aesPanel.minsize(500, 150)
+    aesPanel.title("Clés AES")
+    aesPanel.geometry("500x160")
+    aesPanel.minsize(500, 160)
     aesPanel.config(background='#555555')
+
+    allAES = Listbox(aesPanel)
+    for i in range(20):
+        allAES.insert(i, str(i))
+    allAES.pack()
+    allAES.place(x=0, y=0)
+
+    addAES = Button(aesPanel, text='Ajouter', width=10,
+                    command=createAES).place(x=125, y=0)
+
+    editAES = Button(aesPanel, text='Editer', width=10).place(x=125, y=25)
+
+    deleteAES = Button(aesPanel, text='Supprimer',
+                       width=10).place(x=125, y=50)
 
     aesPanel.mainloop()
 
