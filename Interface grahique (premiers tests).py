@@ -3,6 +3,60 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import Radiobutton
 from tkinter import tix
+import sqlite3
+from sqlite3 import Error
+
+database = r"./pythonsqlite.db"
+
+sql_create_salt_table = """ CREATE TABLE IF NOT EXISTS salt (
+                                    id integer PRIMARY KEY,
+                                    name text NOT NULL,
+                                    salt text NOT NULL
+                                ); """
+
+sql_create_aes_table = """CREATE TABLE IF NOT EXISTS aes (
+                                id integer PRIMARY KEY,
+                                name text NOT NULL,
+                                key text NOT NULL
+                            );"""
+
+
+def create_connection(db_file):
+    """ create a database connection to a SQLite database """
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+        return conn
+    except Error as e:
+        print(e)
+
+    return conn
+
+
+def create_table(conn, create_table_sql):
+    """ create a table from the create_table_sql statement
+    :param conn: Connection object
+    :param create_table_sql: a CREATE TABLE statement
+    :return:
+    """
+    try:
+        c = conn.cursor()
+        c.execute(create_table_sql)
+    except Error as e:
+        print(e)
+
+
+conn = create_connection(database)
+
+# create tables
+if conn is not None:
+    # create projects table
+    create_table(conn, sql_create_salt_table)
+
+    # create tasks table
+    create_table(conn, sql_create_aes_table)
+else:
+    print("Error! cannot create the database connection.")
 
 
 def hashMsg():
@@ -20,6 +74,26 @@ window = tix.Tk()
 
 
 def createSalt():
+
+    def create_salt():
+
+        salt = [entry_name.get(), entry_saltvalue.get()]
+        """
+        Create a new project into the projects table
+        :param conn:
+        :param project:
+        :return: project id
+        """
+        sql = ''' INSERT INTO salt(name,salt)
+                VALUES(?,?) '''
+        cur = conn.cursor()
+        cur.execute(sql, salt)
+        conn.commit()
+
+        newSalt.destroy()
+
+        return cur.lastrowid
+
     newSalt = Tk()
 
     newSalt.title("Ajout d'un sel")
@@ -42,7 +116,22 @@ def createSalt():
     entry_saltvalue.place(x=78, y=34)
 
     button_addSalt = Button(
-        newSalt, text='Ajouter le sel', width=53).place(x=3, y=70)
+        newSalt, text='Ajouter le sel', width=53, command=create_salt).place(x=3, y=70)
+
+
+def getAllSalt():
+
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM salt")
+
+    rows = cur.fetchall()
+
+    print("bonjour")
+
+    for row in rows:
+        print(row)
+
+    return rows
 
 
 def openSalt():
@@ -55,8 +144,15 @@ def openSalt():
     saltPanel.config(background='#555555')
 
     allSalt = Listbox(saltPanel)
-    for i in range(20):
-        allSalt.insert(i, str(i))
+
+    countSalt = 0
+
+    for row in getAllSalt():
+        print(row)
+
+    for row in getAllSalt():
+        allSalt.insert(countSalt, row[1])
+        ++countSalt
     allSalt.pack()
     allSalt.place(x=0, y=0)
 
