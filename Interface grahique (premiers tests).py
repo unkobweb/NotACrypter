@@ -119,6 +119,63 @@ def createSalt():
         newSalt, text='Ajouter le sel', width=53, command=create_salt).place(x=3, y=70)
 
 
+actualSaltId = IntVar()
+actualSaltName = StringVar()
+actualSaltValue = StringVar()
+
+actualSaltId.set(-1)
+
+
+def modifySalt():
+
+    print(actualSaltId.get())
+    if (actualSaltId.get() != -1):
+        def edit_salt():
+
+            salt = [entry_name.get(), entry_saltvalue.get(),
+                    actualSaltId.get()]
+            """
+            Create a new project into the projects table
+            :param conn:
+            :param project:
+            :return: project id
+            """
+            sql = ''' UPDATE salt SET name = ?, salt = ? WHERE id = ?'''
+            cur = conn.cursor()
+            cur.execute(sql, salt)
+            conn.commit()
+
+            editSalt.destroy()
+
+            return cur.lastrowid
+
+        editSalt = Tk()
+
+        editSalt.title("Modification d'un sel")
+        editSalt.geometry("385x100")
+        editSalt.minsize(385, 100)
+        editSalt.config(background='#555555')
+
+        label_name = Label(editSalt, text="Nom", font=(
+            "Courrier", 14), bg='#555555', fg='white').place(x=3, y=0)
+
+        entry_name = Entry(editSalt, width=50)
+        entry_name.insert(END, actualSaltName.get())
+        entry_name.pack()
+        entry_name.place(x=78, y=5)
+
+        label_saltValue = Label(editSalt, text="Valeur", font=(
+            "Courrier", 14), bg='#555555', fg='white').place(x=3, y=30)
+
+        entry_saltvalue = Entry(editSalt, width=50)
+        entry_saltvalue.insert(END, actualSaltValue.get())
+        entry_saltvalue.pack()
+        entry_saltvalue.place(x=78, y=34)
+
+        button_addSalt = Button(
+            editSalt, text='Ajouter le sel', width=53, command=edit_salt).place(x=3, y=70)
+
+
 def getAllSalt():
 
     cur = conn.cursor()
@@ -143,31 +200,79 @@ def openSalt():
     saltPanel.minsize(500, 160)
     saltPanel.config(background='#555555')
 
+    def printSaltValue(evt):
+        w = evt.widget
+        index = int(w.curselection()[0])
+        value = w.get(index)
+
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM salt WHERE name = ?", [value])
+
+        rows = cur.fetchall()
+
+        actualSaltId.set(rows[0][0])
+        actualSaltName.set(rows[0][1])
+        actualSaltValue.set(rows[0][2])
+
+        label_saltValue.config(text=("Valeur : "+rows[0][2]))
+
+        print(actualSaltId)
+
+    def deleteSalt():
+        cur = conn.cursor()
+        cur.execute("DELETE FROM salt WHERE id = ?", [actualSaltId.get()])
+        conn.commit()
+        refreshListOfSalt()
+
     allSalt = Listbox(saltPanel)
+    allSalt.bind('<<ListboxSelect>>', printSaltValue)
 
     countSalt = 0
 
-    for row in getAllSalt():
-        print(row)
+    def refreshListOfSalt():
+        allSalt.delete(0, END)
+        for row in getAllSalt():
+            allSalt.insert(countSalt, row[1])
+            ++countSalt
 
-    for row in getAllSalt():
-        allSalt.insert(countSalt, row[1])
-        ++countSalt
+    refreshListOfSalt()
+
     allSalt.pack()
     allSalt.place(x=0, y=0)
 
     addSalt = Button(saltPanel, text='Ajouter', width=10,
                      command=createSalt).place(x=125, y=0)
 
-    editSalt = Button(saltPanel, text='Editer', width=10).place(x=125, y=25)
+    editSalt = Button(saltPanel, text='Editer', width=10,
+                      command=modifySalt).place(x=125, y=25)
 
-    deleteSalt = Button(saltPanel, text='Supprimer',
-                        width=10).place(x=125, y=50)
+    deleteSalt = Button(saltPanel, text='Supprimer', width=10,
+                        command=deleteSalt).place(x=125, y=50)
+
+    label_saltValue = Label(saltPanel, text="Selectionnez un nom pour voir la valeur du sel", font=(
+        "Courrier", 10), bg='#555555', fg='white', height='1')
+    label_saltValue.pack()
+    label_saltValue.place(x=125, y=80)
 
     saltPanel.mainloop()
 
 
 def createAES():
+
+    def create_AES():
+
+        aes = [entry_AESname.get(), entry_AESvalue.get()]
+
+        sql = ''' INSERT INTO aes(name,key)
+                VALUES(?,?) '''
+        cur = conn.cursor()
+        cur.execute(sql, aes)
+        conn.commit()
+
+        newAES.destroy()
+
+        return cur.lastrowid
+
     newAES = Tk()
 
     newAES.title("Ajout d'une clé AES")
@@ -190,7 +295,7 @@ def createAES():
     entry_AESvalue.place(x=78, y=34)
 
     button_addAES = Button(
-        newAES, text='Ajouter le sel', width=53).place(x=3, y=70)
+        newAES, text='Ajouter la clé', width=53).place(x=3, y=70)
 
 
 def openAES():
@@ -246,8 +351,8 @@ selectedSalt = StringVar()
 availableSalt = tix.ComboBox(
     window, dropdown=1, variable=selectedSalt)
 availableSalt.insert(0, "Pas de sel")
-availableSalt.insert(1, "Valentin")
-availableSalt.insert(2, "Lucas")
+for row in getAllSalt():
+    availableSalt.insert(row[0], row[1])
 availableSalt.pack()
 availableSalt.place(x=220, y=250)
 
@@ -285,10 +390,10 @@ openAES = Button(window, text="Gérer les clés AES", width=30,
                  command=openAES).place(x=1100, y=630)
 
 EncryptButton = Button(window, text="Chiffrer", width=20,
-                 command=openAES).place(x=125, y=630)
+                       command=openAES).place(x=125, y=630)
 
 DecipherButton = Button(window, text="Déchiffrer", width=20,
-                 command=openAES).place(x=325, y=630)
+                        command=openAES).place(x=325, y=630)
 
 textAHasher = Entry(window, width=50)
 textAHasher.pack()
