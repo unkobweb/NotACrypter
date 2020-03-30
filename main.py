@@ -85,7 +85,6 @@ def hashMsg(message, algo):
 
 
 key = Fernet.generate_key()
-print(key)
 f = Fernet(key)
 token = f.encrypt(b"Oui bonjour")
 print(f.decrypt(token))

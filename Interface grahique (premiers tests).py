@@ -5,6 +5,7 @@ from tkinter import Radiobutton
 from tkinter import tix
 import sqlite3
 from sqlite3 import Error
+from cryptography.fernet import Fernet
 
 database = r"./pythonsqlite.db"
 
@@ -60,13 +61,30 @@ else:
 
 
 def hashMsg():
-    sel = selectedSalt.get()
-
+    print(textAHasher.get())
     m = hashlib.new(varGr.get())
-    if (sel != "" and sel != "Pas de sel"):
-        m.update(sel.encode())
-    m.update(textAHasher.get().encode())
-    hashAnswer.set("Hash : "+m.hexdigest().upper())
+    sel = ""
+    if (selectedSalt.get() != "" and selectedSalt.get() != "Pas de sel"):
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM salt WHERE name = ?",
+                    [selectedSalt.get()])
+
+        rows = cur.fetchall()
+
+        sel = rows[0][2]
+
+    if (textAHasher.get() != ""):
+        if (sel != ""):
+            m.update(sel.encode())
+        m.update(textAHasher.get().encode())
+        hashAnswer.set(m.hexdigest().upper())
+    elif (selectedFile.get() != ""):
+        with open(selectedFile.get(), 'rb') as afile:
+            buf = afile.read()
+            if (sel != ""):
+                m.update(sel.encode())
+            m.update(buf)
+            hashAnswer.set(m.hexdigest().upper())
 
 
 # créer une première fenêtre
@@ -78,12 +96,6 @@ def createSalt():
     def create_salt():
 
         salt = [entry_name.get(), entry_saltvalue.get()]
-        """
-        Create a new project into the projects table
-        :param conn:
-        :param project:
-        :return: project id
-        """
         sql = ''' INSERT INTO salt(name,salt)
                 VALUES(?,?) '''
         cur = conn.cursor()
@@ -270,22 +282,29 @@ def createAES():
 
         aes = [entry_AESname.get(), entry_AESvalue.get()]
 
-        sql = ''' INSERT INTO aes(name,key)
-                VALUES(?,?) '''
-        cur = conn.cursor()
-        cur.execute(sql, aes)
-        conn.commit()
+        if (entry_AESname.get() != '' and entry_AESvalue.get() != ''):
 
-        newAES.destroy()
+            sql = ''' INSERT INTO aes(name,key)
+                    VALUES(?,?) '''
+            cur = conn.cursor()
+            cur.execute(sql, aes)
+            conn.commit()
 
-        countAES = 0
+            newAES.destroy()
 
-        availableAES.slistbox.listbox.delete(0, tix.END)
-        for row in getAllAES():
-            availableAES.insert(countAES, row[1])
-            ++countAES
+            countAES = 0
 
-        return cur.lastrowid
+            availableAES.slistbox.listbox.delete(0, tix.END)
+            for row in getAllAES():
+                availableAES.insert(countAES, row[1])
+                ++countAES
+
+    def generate_AES():
+
+        key = Fernet.generate_key()
+
+        entry_AESvalue.delete(0, END)
+        entry_AESvalue.insert(END, key.decode())
 
     newAES = Tk()
 
@@ -309,7 +328,9 @@ def createAES():
     entry_AESvalue.place(x=78, y=34)
 
     button_addAES = Button(
-        newAES, text='Ajouter la clé', width=53, command=create_AES).place(x=3, y=70)
+        newAES, text='Ajouter la clé', width=20, command=create_AES).place(x=3, y=70)
+    button_generateAES = Button(
+        newAES, text='Générer une clé', width=20, command=generate_AES).place(x=170, y=70)
 
 
 actualAESId = IntVar()
@@ -447,24 +468,22 @@ def openAES():
 # personnaliser cette fenêtre
 window.title("NotACrypter")
 window.geometry("1370x720")
-window.minsize(800, 450)
+window.minsize(1370, 720)
+window.maxsize(1370, 720)
 window.config(background='#555555')
 
 # premier texte
 label_title = Label(window, text="Fonction de hashage", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='10').place(x=70, y=40)
+    "Courrier", 14), bg='#555555', fg='white', height='10').place(x=110, y=40)
 
 label_title4 = Label(window, text="Votre sel", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=250)
-
-label_title2 = Label(window, text="Votre document", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='10').place(x=110, y=275)
-
-label_title3 = Label(window, text="Votre message", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=300)
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=346)
 
 label_title5 = Label(window, text="Clés AES", font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=110, y=200)
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=510, y=300)
+
+label_title6 = Label(window, text="Votre hash", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='1').place(x=510, y=300)
 
 selectedSalt = StringVar()
 
@@ -474,34 +493,84 @@ availableSalt.insert(0, "Pas de sel")
 for row in getAllSalt():
     availableSalt.insert(row[0], row[1])
 availableSalt.pack()
-availableSalt.place(x=220, y=250)
+availableSalt.place(x=220, y=350)
+
+selectedAES = StringVar()
 
 availableAES = tix.ComboBox(
-    window, dropdown=1, variable=selectedSalt)
+    window, dropdown=1, variable=selectedAES)
 availableAES.insert(0, "Pas de clé AES")
 for row in getAllAES():
     availableAES.insert(row[0], row[1])
 availableAES.pack()
-availableAES.place(x=220, y=200)
+availableAES.place(x=620, y=300)
 
 hashAnswer = StringVar()
 
-hashResult = Label(window, textvariable=hashAnswer, font=(
-    "Courrier", 14), bg='#555555', fg='white', height='1')
+hashResult = Entry(window, textvariable=hashAnswer, width=65)
 hashResult.pack()
-hashResult.place(x=125, y=560)
+hashResult.place(x=115, y=560)
+
+state = IntVar()
+state.set(0)
 
 
 def mfileopen():
-    file1 = filedialog.askopenfile()
-    label_file = Label(window, text=file1, font=(
-        "Courrier", 10), bg='#555555', fg='white', height='10').place(x=550, y=310)
+    selectedFile.set(filedialog.askopenfile().name)
+    print(selectedFile.get())
+    label_file = Label(window, text=selectedFile.get(), font=(
+        "Courrier", 10), bg='#555555', fg='white', height='1').place(x=520, y=140)
+
+
+def switch():
+    if (state.get() == 0):
+        state.set(1)
+    else:
+        state.set(0)
+    if (state.get() == 1):
+        textAHasher.delete(0, END)
+        switchButton.config(text="Utiliser un message")
+        label_title3.place(x=-100, y=-200)
+        textAHasher.place(x=-100, y=-200)
+        button.place(x=650, y=110)
+        label_title2.place(x=500, y=9)
+    else:
+        selectedFile.set('')
+        switchButton.config(text="Utiliser un fichier")
+        label_title3.place(x=450, y=110)
+        textAHasher.place(x=600, y=115)
+        button.place(x=-100, y=-200)
+        label_title2.place(x=-100, y=-200)
+
+
+label_title3 = Label(window, text="Votre message", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='1')
+label_title3.place(x=450, y=110)
+
+textAHasher = Entry(window, width=50)
+textAHasher.pack()
+textAHasher.place(x=600, y=115)
+
+button = Button(window, text="Sélectionner un document", width=30,
+                command=mfileopen)
+button.place(x=-100, y=-200)
+label_title2 = Label(window, text="Votre document", font=(
+    "Courrier", 14), bg='#555555', fg='white', height='10')
+label_title2.place(x=-100, y=-200)
+
+selectedFile = StringVar()
 
 
 varGr = StringVar()
 
-button = Button(window, text="Sélectionner un document", width=30,
-                command=mfileopen).place(x=300, y=377)
+title = Label(window, text="NotACrypter", font=(
+    "Courrier", 20), bg='#555555', fg='white').place(x=600, y=5)
+subtitle = Label(window, text="by Lucas et Alexandre",
+                 font=("Courrier", 8), bg='#555555', fg='white').place(x=620, y=40)
+
+switchButton = Button(window, text="Utiliser un document",
+                      command=switch, width=30)
+switchButton.place(x=569, y=70)
 
 openSalt = Button(window, text="Gérer les sels", width=30,
                   command=openSalt).place(x=1100, y=600)
@@ -515,12 +584,8 @@ EncryptButton = Button(window, text="Chiffrer", width=20,
 DecipherButton = Button(window, text="Déchiffrer", width=20,
                         command=openAES).place(x=325, y=630)
 
-textAHasher = Entry(window, width=50)
-textAHasher.pack()
-textAHasher.place(x=300, y=305)
-
-hashing_button = Button(text="Hasher", width=50,
-                        command=hashMsg).place(x=125, y=525)
+hashing_button = Button(text="Hasher", width=20,
+                        command=hashMsg).place(x=125, y=425)
 
 vals = ['sha1', 'sha256', 'sha512', 'md5', 'blake2b']
 etiqs = ['SHA-1', 'SHA-256', 'SHA-512', 'MD5', 'Blake2B']
@@ -529,7 +594,7 @@ for i in range(5):
     b = Radiobutton(window, variable=varGr,
                     text=etiqs[i], value=vals[i], activebackground="#555555", bg='#555555', activeforeground="white", foreground="white", selectcolor="black")
     b.pack(side='left', expand=1)
-    b.place(x=(100*i)+300, y=140)
+    b.place(x=110, y=(20*i)+180)
 
 # afficher
 window.mainloop()
