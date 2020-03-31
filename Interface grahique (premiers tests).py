@@ -6,6 +6,7 @@ from tkinter import tix
 import sqlite3
 from sqlite3 import Error
 from cryptography.fernet import Fernet
+import subprocess
 
 database = r"./pythonsqlite.db"
 
@@ -81,7 +82,65 @@ def hashMsg():
             hashAnswer.set(m.hexdigest().upper())
 
 
-# créer une première fenêtre
+def encrypt():
+    print(selectedAES.get())
+    if (selectedAES.get() != ''):
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM aes WHERE name = ?",
+                    [selectedAES.get()])
+
+        rows = cur.fetchall()
+
+        aes = rows[0][2]
+
+        f = Fernet(aes.encode())
+        if (textAHasher.get() != ""):
+            m = hashlib.md5()
+            m.update(textAHasher.get().encode())
+            nameOfFile = m.hexdigest()
+            with open('./output/encrypted/'+nameOfFile+'.txt.aes', 'w') as newFile:
+                newFile.write(f.encrypt(textAHasher.get().encode()).decode())
+                newFile.close()
+            subprocess.Popen(
+                r'explorer /select,".\output\encrypted\"'+nameOfFile+'.txt.aes')
+        elif (selectedFile.get() != ''):
+            with open(selectedFile.get(), 'rb') as willBeEncrypt:
+                data = willBeEncrypt.read()
+                willBeEncrypt.close()
+            with open('./output/encrypted/'+selectedFile.get().split("/")[-1]+'.aes', 'w') as newFile:
+                newFile.write(f.encrypt(data).decode())
+                newFile.close()
+            subprocess.Popen(r'explorer /select,".\output\encrypted\"' +
+                             selectedFile.get().split("/")[-1]+'.aes')
+
+
+def decrypt():
+    if (selectedAES.get() != '' and selectedFile.get() != ''):
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM aes WHERE name = ?",
+                    [selectedAES.get()])
+
+        rows = cur.fetchall()
+
+        aes = rows[0][2]
+
+        f = Fernet(aes.encode())
+
+        with open(selectedFile.get(), 'rb') as willBeDecrypt:
+            data = willBeDecrypt.read()
+            willBeDecrypt.close()
+        nameOfNewFile = selectedFile.get().split("/")[-1]
+        nameOfNewFile = nameOfNewFile.split(".")
+        nameOfNewFile.pop()
+        nameOfNewFile = ".".join(nameOfNewFile)
+
+        with open('./output/decrypted/'+nameOfNewFile, 'wb') as newFile:
+            newFile.write(f.decrypt(data))
+            newFile.close()
+            subprocess.Popen(r'explorer /select,".\output\decrypted\"' +
+                             nameOfNewFile)
+
+            # créer une première fenêtre
 window = tix.Tk()
 
 
@@ -493,7 +552,6 @@ selectedAES = StringVar()
 
 availableAES = tix.ComboBox(
     window, dropdown=1, variable=selectedAES)
-availableAES.insert(0, "Pas de clé AES")
 for row in getAllAES():
     availableAES.insert(row[0], row[1])
 availableAES.pack()
@@ -513,7 +571,7 @@ def mfileopen():
     selectedFile.set(filedialog.askopenfile().name)
     print(selectedFile.get())
     label_file = Label(window, text=selectedFile.get(), font=(
-        "Courrier", 10), bg='#555555', fg='white', height='1').place(x=520, y=140)
+        "Courrier", 10), bg='#555555', fg='white', height='1').place(x=350, y=140)
 
 
 def switch():
@@ -573,10 +631,10 @@ openAES = Button(window, text="Gérer les clés AES", width=30,
                  command=openAES).place(x=800, y=630)
 
 EncryptButton = Button(window, text="Chiffrer", width=20,
-                       command=openAES).place(x=835, y=430)
+                       command=encrypt).place(x=835, y=430)
 
 DecipherButton = Button(window, text="Déchiffrer", width=20,
-                        command=openAES).place(x=835, y=460)
+                        command=decrypt).place(x=835, y=460)
 
 hashing_button = Button(text="Hasher", width=20,
                         command=hashMsg).place(x=125, y=500)
