@@ -8,8 +8,10 @@ from sqlite3 import Error
 from cryptography.fernet import Fernet
 import subprocess
 
+# Chemin vers le fichier .db pour sqlite3
 database = r"./pythonsqlite.db"
 
+# Création des deux tables si elles n'existent pas
 sql_create_salt_table = """ CREATE TABLE IF NOT EXISTS salt (
                                     id integer PRIMARY KEY,
                                     name text NOT NULL,
@@ -22,6 +24,8 @@ sql_create_aes_table = """CREATE TABLE IF NOT EXISTS aes (
                                 key text NOT NULL
                             );"""
 
+# Fonction connection à la base de donnée
+
 
 def create_connection(db_file):
     conn = None
@@ -32,6 +36,8 @@ def create_connection(db_file):
         print(e)
 
     return conn
+
+# Fonction de création d'une table
 
 
 def create_table(conn, create_table_sql):
@@ -44,21 +50,23 @@ def create_table(conn, create_table_sql):
 
 conn = create_connection(database)
 
-# create tables
+# Création des tables
 if conn is not None:
-    # create projects table
     create_table(conn, sql_create_salt_table)
 
-    # create tasks table
     create_table(conn, sql_create_aes_table)
 else:
     print("Error! cannot create the database connection.")
 
+# Fonction qui permet le hash d'un message ou d'un fichier
+
 
 def hashMsg():
-    print(textAHasher.get())
+    # On récupère l'algorythme de hashage
     m = hashlib.new(varGr.get())
     sel = ""
+
+    # Si l'utilisateur à choisi un sel on va le récupérer et l'incorporer au début du hash
     if (selectedSalt.get() != "" and selectedSalt.get() != "Pas de sel"):
         cur = conn.cursor()
         cur.execute("SELECT * FROM salt WHERE name = ?",
@@ -68,12 +76,13 @@ def hashMsg():
 
         sel = rows[0][2]
 
-    if (textAHasher.get() != ""):
+    if (textAHasher.get() != ""):   # Si l'utilisateur veut hasher un message
         if (sel != ""):
             m.update(sel.encode())
         m.update(textAHasher.get().encode())
         hashAnswer.set(m.hexdigest().upper())
-    elif (selectedFile.get() != ""):
+    elif (selectedFile.get() != ""):  # Si l'utilisateur veut hasher un fichier
+        # Ouverture du fichier en mode 'rb' pour récupérer les bytes qui composent ce fichier
         with open(selectedFile.get(), 'rb') as afile:
             buf = afile.read()
             if (sel != ""):
@@ -81,10 +90,12 @@ def hashMsg():
             m.update(buf)
             hashAnswer.set(m.hexdigest().upper())
 
+# Fonction qui permet le chiffrement de message / fichier
+
 
 def encrypt():
-    print(selectedAES.get())
-    if (selectedAES.get() != ''):
+    if (selectedAES.get() != ''):   # On vérifie que l'utilisateur a bien choisi une clé AES
+        # On récupère la clé AES
         cur = conn.cursor()
         cur.execute("SELECT * FROM aes WHERE name = ?",
                     [selectedAES.get()])
@@ -94,7 +105,7 @@ def encrypt():
         aes = rows[0][2]
 
         f = Fernet(aes.encode())
-        if (textAHasher.get() != ""):
+        if (textAHasher.get() != ""):  # Si l'utilisateur veut chiffrer un message
             m = hashlib.md5()
             m.update(textAHasher.get().encode())
             nameOfFile = m.hexdigest()
@@ -103,19 +114,24 @@ def encrypt():
                 newFile.close()
             subprocess.Popen(
                 r'explorer /select,".\output\encrypted\"'+nameOfFile+'.txt.aes')
-        elif (selectedFile.get() != ''):
+        elif (selectedFile.get() != ''):  # Si l'utilisateur veut chiffrer un fichier
+            # On récupère les bytes du fichiers qu'on va chiffrer avec la clé
             with open(selectedFile.get(), 'rb') as willBeEncrypt:
                 data = willBeEncrypt.read()
                 willBeEncrypt.close()
+            # On créer un nouveau fichier (nommé comme l'ancien avec l'extension '.aes')
             with open('./output/encrypted/'+selectedFile.get().split("/")[-1]+'.aes', 'w') as newFile:
                 newFile.write(f.encrypt(data).decode())
                 newFile.close()
             subprocess.Popen(r'explorer /select,".\output\encrypted\"' +
                              selectedFile.get().split("/")[-1]+'.aes')
 
+# Fonction qui permet le déchiffrement de fichier
+
 
 def decrypt():
     if (selectedAES.get() != '' and selectedFile.get() != ''):
+        # Récupération de la clé AES
         cur = conn.cursor()
         cur.execute("SELECT * FROM aes WHERE name = ?",
                     [selectedAES.get()])
@@ -126,6 +142,7 @@ def decrypt():
 
         f = Fernet(aes.encode())
 
+        # Ouverture du fichier chiffré en 'rb' pour récupérer les bytes
         with open(selectedFile.get(), 'rb') as willBeDecrypt:
             data = willBeDecrypt.read()
             willBeDecrypt.close()
@@ -134,18 +151,24 @@ def decrypt():
         nameOfNewFile.pop()
         nameOfNewFile = ".".join(nameOfNewFile)
 
+        # Création d'un nouveau fichier en enlevant la dernière extension (.aes par exemple) pour ne laisser que l'extension de base (txt, jpg, etc..)
         with open('./output/decrypted/'+nameOfNewFile, 'wb') as newFile:
+            # Ajout des bytes déchiffrés dans le nouveau fichier
             newFile.write(f.decrypt(data))
             newFile.close()
             subprocess.Popen(r'explorer /select,".\output\decrypted\"' +
                              nameOfNewFile)
 
-            # créer une première fenêtre
+
+# Création de la fenêtre
 window = tix.Tk()
+
+# Fonction qui ouvre la fenêtre pour l'ajout d'un sel
 
 
 def createSalt():
 
+    # Fonction qui ajoute le sel en bdd
     def create_salt():
 
         salt = [entry_name.get(), entry_saltvalue.get()]
@@ -166,6 +189,7 @@ def createSalt():
 
         return cur.lastrowid
 
+    # Création et parametrage de la fenêtre
     newSalt = Tk()
 
     newSalt.title("Ajout d'un sel")
@@ -197,11 +221,13 @@ actualSaltValue = StringVar()
 
 actualSaltId.set(-1)
 
+# Fenêtre qui permet de modifier un sel
+
 
 def modifySalt():
 
-    print(actualSaltId.get())
     if (actualSaltId.get() != -1):
+        # Modifie le sel en bdd
         def edit_salt():
 
             salt = [entry_name.get(), entry_saltvalue.get(),
@@ -216,6 +242,7 @@ def modifySalt():
 
             return cur.lastrowid
 
+        # Création et paramétrage de la fenêtre
         editSalt = Tk()
 
         editSalt.title("Modification d'un sel")
@@ -242,6 +269,8 @@ def modifySalt():
         button_addSalt = Button(
             editSalt, text='Ajouter le sel', width=53, command=edit_salt).place(x=3, y=70)
 
+# Fonction qui permet de récupérer tout les sels présents en bdd
+
 
 def getAllSalt():
 
@@ -257,9 +286,12 @@ def getAllSalt():
 
     return rows
 
+# Fonction qui permet d'afficher la fenêtre de gestion des sels
+
 
 def openSalt():
 
+    # Création et paramétrage de la fenêtre
     saltPanel = Tk()
 
     saltPanel.title("Sels")
@@ -267,6 +299,7 @@ def openSalt():
     saltPanel.minsize(500, 160)
     saltPanel.config(background='#555555')
 
+    # Fonction qui affiche la valeur du sel que l'utilisateur a selectionné
     def printSaltValue(evt):
         w = evt.widget
         index = int(w.curselection()[0])
@@ -283,8 +316,7 @@ def openSalt():
 
         label_saltValue.config(text=("Valeur : "+rows[0][2]))
 
-        print(actualSaltId)
-
+    # Fonction qui permet de supprimer un sel de la bdd
     def deleteSalt():
         cur = conn.cursor()
         cur.execute("DELETE FROM salt WHERE id = ?", [actualSaltId.get()])
@@ -296,6 +328,7 @@ def openSalt():
 
     countSalt = 0
 
+    # Fonction qui permet d'actualiser la combobox
     def refreshListOfSalt():
         allSalt.delete(0, END)
         availableSalt.slistbox.listbox.delete(0, tix.END)
@@ -328,9 +361,12 @@ def openSalt():
 
     saltPanel.mainloop()
 
+# Fonction pour faire apparaitre la fenêtre de création / génération de clé AES
+
 
 def createAES():
 
+    # Fonction pour ajouter la nouvelle clé à la bdd
     def create_AES():
 
         aes = [entry_AESname.get(), entry_AESvalue.get()]
@@ -352,6 +388,7 @@ def createAES():
                 availableAES.insert(countAES, row[1])
                 ++countAES
 
+    # Fonction qui permet de générer une clé AES
     def generate_AES():
 
         key = Fernet.generate_key()
@@ -359,6 +396,7 @@ def createAES():
         entry_AESvalue.delete(0, END)
         entry_AESvalue.insert(END, key.decode())
 
+    # Création et paramétrage de la fenêtre
     newAES = Tk()
 
     newAES.title("Ajout d'une clé AES")
@@ -392,10 +430,13 @@ actualAESValue = StringVar()
 
 actualAESId.set(-1)
 
+# Fonction qui permet l'affichage de la fenêtre de modification de la clé
+
 
 def modifyAES():
 
     if (actualAESId.get() != -1):
+        # Fonction qui permet la modification de la clé dans la bdd
         def edit_aes():
 
             aes = [entry_name.get(), entry_AESvalue.get(),
@@ -410,6 +451,7 @@ def modifyAES():
 
             return cur.lastrowid
 
+        # Création et paramétrage de la fenêtre
         editAES = Tk()
 
         editAES.title("Modification d'un sel")
@@ -436,6 +478,8 @@ def modifyAES():
         button_addAES = Button(
             editAES, text='Ajouter le sel', width=53, command=edit_aes).place(x=3, y=70)
 
+# Fonction qui permet de récupérer toutes les clés AES se trouvant dans la bdd
+
 
 def getAllAES():
 
@@ -449,6 +493,8 @@ def getAllAES():
 
     return rows
 
+# Fonction pour ouvrir la fenêtre de gestion des clés AES
+
 
 def openAES():
 
@@ -459,6 +505,7 @@ def openAES():
     aesPanel.minsize(500, 160)
     aesPanel.config(background='#555555')
 
+    # Fonction qui permet d'afficher la valeur d'une clé AES
     def printAESValue(evt):
         w = evt.widget
         index = int(w.curselection()[0])
@@ -475,6 +522,7 @@ def openAES():
 
         label_AESValue.config(text=("Valeur : "+rows[0][2]))
 
+    # Fonction qui permet de supprimer une clé AES dans la bdd
     def deleteAES():
         cur = conn.cursor()
         cur.execute("DELETE FROM aes WHERE id = ?", [actualAESId.get()])
@@ -486,6 +534,7 @@ def openAES():
 
     countAES = 0
 
+    # Fonction qui permet d'actualiser la combobox des clés AES
     def refreshListOfAES():
         allAES.delete(0, END)
         availableAES.slistbox.listbox.delete(0, tix.END)
@@ -518,7 +567,7 @@ def openAES():
     aesPanel.mainloop()
 
 
-# personnaliser cette fenêtre
+# Paramétrage de la fenêtre
 window.title("NotACrypter")
 window.geometry("1100x720")
 window.minsize(1100, 720)
@@ -566,12 +615,16 @@ hashResult.place(x=115, y=560)
 state = IntVar()
 state.set(0)
 
+# Fonction qui permet à l'utilisateur de choisir un fichier sur son disque
+
 
 def mfileopen():
     selectedFile.set(filedialog.askopenfile().name)
     print(selectedFile.get())
     label_file = Label(window, text=selectedFile.get(), font=(
         "Courrier", 10), bg='#555555', fg='white', height='1').place(x=350, y=140)
+
+# Fonction qui permet a l'utilisateur de choisir entre l'utilisation d'un message ou d'un fichier
 
 
 def switch():
@@ -648,5 +701,5 @@ for i in range(5):
     b.pack(side='left', expand=1)
     b.place(x=110, y=(20*i)+260)
 
-# afficher
+# Afficher la fenêtre principal
 window.mainloop()
